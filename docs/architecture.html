@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Factory Inventory Management - Architecture</title>
+<style>
+  :root { --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff; --accent:#1d4ed8; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: -apple-system, "Segoe UI", Roboto, sans-serif; color:var(--ink); background:var(--bg); line-height:1.55; }
+  header { background:var(--ink); color:#fff; padding:36px 24px; }
+  header h1 { margin:0 0 6px; font-size:26px; font-weight:600; }
+  header p { margin:0; color:#cbd5e1; max-width:760px; }
+  main { max-width:1040px; margin:0 auto; padding:32px 24px 64px; }
+  section { margin-bottom:40px; }
+  h2 { font-size:18px; margin:0 0 14px; padding-bottom:8px; border-bottom:1px solid var(--line); }
+  h3 { font-size:15px; margin:0 0 6px; }
+  p { margin:0 0 10px; }
+  .muted { color:var(--muted); font-size:14px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:18px; }
+  .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); }
+  ul { margin:6px 0 0; padding-left:18px; }
+  li { margin-bottom:4px; font-size:14px; }
+  code { background:#eef2f7; padding:1px 5px; border-radius:4px; font-size:13px; }
+  table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--line); border-radius:8px; overflow:hidden; font-size:14px; }
+  th, td { text-align:left; padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { background:#f1f5f9; font-weight:600; }
+  tr:last-child td { border-bottom:none; }
+  .diagram { display:flex; align-items:stretch; gap:10px; flex-wrap:wrap; }
+  .node { flex:1 1 150px; background:var(--card); border:1px solid var(--line); border-top:3px solid var(--accent); border-radius:8px; padding:14px; }
+  .node strong { display:block; font-size:14px; margin-bottom:4px; }
+  .node span { font-size:13px; color:var(--muted); }
+  .node.data { border-top-color:#0f766e; }
+  .node.api { border-top-color:#b45309; }
+  .arrow { align-self:center; color:var(--muted); font-size:20px; }
+  ol.flow { padding-left:20px; }
+  ol.flow li { font-size:14px; margin-bottom:8px; }
+  .tag { display:inline-block; font-size:12px; padding:1px 8px; border-radius:10px; background:#e0e7ff; color:#3730a3; margin-left:6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Factory Inventory Management System</h1>
+  <p>A full-stack demo: Vue 3 single-page app, a Python FastAPI service, and in-memory data loaded from JSON files. There is no database.</p>
+</header>
+
+<main>
+
+<section>
+  <h2>System Architecture</h2>
+  <div class="diagram">
+    <div class="node"><strong>Browser</strong><span>Vue 3 SPA served by Vite dev server<br><code>:3000</code></span></div>
+    <div class="arrow">&rarr;</div>
+    <div class="node api"><strong>FastAPI</strong><span>REST API under <code>/api/*</code>, run by Uvicorn<br><code>:8001</code></span></div>
+    <div class="arrow">&rarr;</div>
+    <div class="node data"><strong>mock_data.py</strong><span>Loads JSON at startup into Python lists/dicts</span></div>
+    <div class="arrow">&rarr;</div>
+    <div class="node data"><strong>server/data/*.json</strong><span>inventory, orders, demand, backlog, spending, transactions, purchase orders</span></div>
+  </div>
+  <p class="muted" style="margin-top:12px">The browser calls the API directly over HTTP (axios to <code>http://localhost:8001/api</code>). CORS is enabled on the backend so the two origins can talk. Data is read-only apart from in-memory state, and resets on restart.</p>
+</section>
+
+<section>
+  <h2>Tech Stack</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Frontend <span class="tag">client/</span></h3>
+      <ul>
+        <li>Vue 3 with the Composition API</li>
+        <li>Vue Router 4 (history mode)</li>
+        <li>Axios for HTTP</li>
+        <li>Vite 8 for dev server and build</li>
+        <li>Custom SVG charts, CSS Grid layouts</li>
+        <li>Built-in i18n (English, Japanese)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Backend <span class="tag">server/</span></h3>
+      <ul>
+        <li>Python 3.11+ with FastAPI</li>
+        <li>Pydantic v2 response models</li>
+        <li>Uvicorn ASGI server</li>
+        <li>CORS middleware</li>
+        <li>Dependencies managed with <code>uv</code> / <code>pyproject.toml</code></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Data and Tooling</h3>
+      <ul>
+        <li>JSON files in <code>server/data/</code></li>
+        <li><code>generate_data.py</code> to regenerate sample data</li>
+        <li>pytest + FastAPI TestClient in <code>tests/backend</code></li>
+        <li>Claude Code agents, skills, and commands in <code>.claude/</code></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Data Flow</h2>
+  <ol class="flow">
+    <li><strong>Filter selection.</strong> The user changes Time Period, Warehouse, Category, or Order Status in the filter bar. State lives in the shared <code>useFilters</code> composable (a module-level singleton, so every view sees the same values).</li>
+    <li><strong>API call.</strong> A view calls a method in <code>client/src/api.js</code>. It converts the filters to query parameters, skipping any set to <code>all</code>.</li>
+    <li><strong>Routing and filtering.</strong> FastAPI matches the route and applies the filters in memory with <code>apply_filters</code> and <code>filter_by_month</code>.</li>
+    <li><strong>Validation.</strong> Pydantic models (<code>InventoryItem</code>, <code>Order</code>, <code>BacklogItem</code>, ...) validate and serialize the response as JSON.</li>
+    <li><strong>Rendering.</strong> The view stores raw results in refs (<code>allOrders</code>, <code>inventoryItems</code>). Computed properties derive totals and chart data, and Vue re-renders.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Frontend Structure</h2>
+  <table>
+    <tr><th>Area</th><th>Location</th><th>Role</th></tr>
+    <tr><td>Entry and routes</td><td><code>src/main.js</code></td><td>Creates the app and router: Dashboard, Inventory, Orders, Demand, Spending, Reports</td></tr>
+    <tr><td>Views</td><td><code>src/views/*.vue</code></td><td>One page per route, plus Backlog</td></tr>
+    <tr><td>Components</td><td><code>src/components/*.vue</code></td><td>Filter bar, detail modals, profile menu, language switcher</td></tr>
+    <tr><td>Composables</td><td><code>src/composables/</code></td><td><code>useFilters</code>, <code>useAuth</code>, <code>useI18n</code></td></tr>
+    <tr><td>API client</td><td><code>src/api.js</code></td><td>All HTTP calls to the backend</td></tr>
+    <tr><td>Locales</td><td><code>src/locales/</code></td><td>en and ja strings</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>API Endpoints</h2>
+  <table>
+    <tr><th>Endpoint</th><th>Filters</th><th>Returns</th></tr>
+    <tr><td><code>GET /api/inventory</code>, <code>/api/inventory/{id}</code></td><td>warehouse, category</td><td>Stock items</td></tr>
+    <tr><td><code>GET /api/orders</code>, <code>/api/orders/{id}</code></td><td>warehouse, category, status, month</td><td>Customer orders</td></tr>
+    <tr><td><code>GET /api/dashboard/summary</code></td><td>all four</td><td>Inventory value, low stock, pending orders, backlog count</td></tr>
+    <tr><td><code>GET /api/demand</code>, <code>/api/backlog</code></td><td>none</td><td>Forecasts; backlog with purchase order flag</td></tr>
+    <tr><td><code>GET /api/spending/*</code></td><td>none</td><td>Summary, monthly, categories, transactions</td></tr>
+    <tr><td><code>GET /api/reports/*</code></td><td>none</td><td>Quarterly reports, monthly trends</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>How the Swagger UI on Port 8001 Works</h2>
+  <div class="card">
+    <p>Opening <code>http://localhost:8001/docs</code> shows an interactive API reference. No one wrote or configured it. It is a built-in feature of FastAPI, produced by the pieces below.</p>
+    <ul>
+      <li><strong>OpenAPI schema.</strong> FastAPI inspects each <code>@app.get(...)</code> route, its parameters and type hints (such as <code>Optional[str]</code>), and its <code>response_model</code>. From these it builds an OpenAPI 3 document, served as JSON at <code>/openapi.json</code>.</li>
+      <li><strong>Pydantic.</strong> The models (<code>InventoryItem</code>, <code>Order</code>, ...) provide the JSON Schema for each request and response, including field names and types. The same models validate the data at runtime, so the docs cannot drift from the code.</li>
+      <li><strong>Swagger UI.</strong> <code>/docs</code> returns a small HTML page that loads the open-source Swagger UI JavaScript and CSS (from a CDN by default) and points it at <code>/openapi.json</code>. The browser renders the endpoints and lets you click <em>Try it out</em> to send real requests to the running server.</li>
+      <li><strong>ReDoc.</strong> <code>/redoc</code> renders the same schema as a read-only reference page.</li>
+      <li><strong>Serving.</strong> Uvicorn, an ASGI server, listens on port 8001 (<code>uvicorn.run(app, host="0.0.0.0", port=8001)</code> in <code>main.py</code>). FastAPI is built on Starlette, which handles routing and the CORS middleware.</li>
+    </ul>
+    <p class="muted" style="margin-top:10px">Because the Swagger page pulls its assets from a CDN, it needs internet access in the browser. The API itself does not.</p>
+  </div>
+  <table style="margin-top:14px">
+    <tr><th>URL</th><th>Purpose</th></tr>
+    <tr><td><code>http://localhost:8001/docs</code></td><td>Swagger UI (interactive)</td></tr>
+    <tr><td><code>http://localhost:8001/redoc</code></td><td>ReDoc (read-only)</td></tr>
+    <tr><td><code>http://localhost:8001/openapi.json</code></td><td>Raw OpenAPI schema</td></tr>
+  </table>
+</section>
+
+</main>
+</body>
+</html>

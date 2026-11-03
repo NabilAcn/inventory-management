@@ -6,6 +6,7 @@ export default {
     orders: '注文',
     finance: '財務',
     demandForecast: '需要予測',
+    restocking: '補充発注',
     companyName: '触媒コンポーネンツ',
     subtitle: '在庫管理システム'
   },
@@ -126,6 +127,54 @@ export default {
       status: 'ステータス',
       expectedDelivery: '予定配達日',
       actualDelivery: '実際の配達日'
+    },
+    submitted: {
+      title: '送信済み注文',
+      orderId: '注文ID',
+      orderDate: '注文日',
+      items: '品目',
+      suppliers: 'サプライヤー',
+      totalCost: '合計コスト',
+      leadTime: 'リードタイム',
+      expectedDelivery: '予定配達日',
+      days: '日',
+      empty: '送信済みの補充注文はまだありません。'
+    }
+  },
+
+  // Restocking
+  restocking: {
+    title: '補充発注',
+    description: '予算内で補充注文を計画します。需要が増加している品目を優先します',
+    budgetLabel: '補充予算',
+    budget: '予算',
+    estimatedSpend: '見積支出額',
+    remaining: '残り予算',
+    fullRestockCost: '全量補充コスト: {amount}',
+    recommendations: '推奨購入品目',
+    empty: '現在の予算に収まる品目がありません。予算を増やすと推奨が表示されます。',
+    placeOrder: '注文する',
+    placing: '注文を送信中...',
+    table: {
+      item: '品目',
+      supplier: 'サプライヤー',
+      quantity: '数量',
+      unitCost: '単価',
+      lineCost: '明細金額',
+      leadTime: 'リードタイム（日）'
+    },
+    confirmation: {
+      title: '注文を送信しました',
+      orderId: '注文ID',
+      total: '合計コスト',
+      leadTime: 'リードタイム',
+      days: '日',
+      expectedDelivery: '予定配達日',
+      viewOrders: '注文一覧を見る'
+    },
+    errors: {
+      load: '補充データの読み込みに失敗しました',
+      submit: '注文の送信に失敗しました。もう一度お試しください。'
     }
   },
 
