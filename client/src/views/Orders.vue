@@ -74,6 +74,53 @@
           </table>
         </div>
       </div>
+
+      <div class="card submitted-card">
+        <div class="card-header">
+          <h3 class="card-title">{{ t('orders.submitted.title') }} ({{ submittedOrders.length }})</h3>
+        </div>
+        <div v-if="submittedOrders.length === 0" class="submitted-empty">
+          {{ t('orders.submitted.empty') }}
+        </div>
+        <div v-else class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>{{ t('orders.submitted.orderId') }}</th>
+                <th>{{ t('orders.submitted.orderDate') }}</th>
+                <th>{{ t('orders.submitted.items') }}</th>
+                <th>{{ t('orders.submitted.suppliers') }}</th>
+                <th>{{ t('orders.submitted.totalCost') }}</th>
+                <th>{{ t('orders.submitted.leadTime') }}</th>
+                <th>{{ t('orders.submitted.expectedDelivery') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="order in submittedOrders" :key="order.id">
+                <td><strong>{{ order.id }}</strong></td>
+                <td>{{ formatDate(order.order_date) }}</td>
+                <td>
+                  <details class="items-details">
+                    <summary class="items-summary">
+                      {{ t('orders.itemsCount', { count: order.items.length }) }}
+                    </summary>
+                    <div class="items-dropdown">
+                      <div v-for="item in order.items" :key="item.item_sku" class="item-entry">
+                        <span class="item-name">{{ translateProductName(item.item_name) }}</span>
+                        <span class="item-meta">{{ t('orders.quantity') }}: {{ item.quantity }} @ {{ currencySymbol }}{{ item.unit_cost }}</span>
+                      </div>
+                    </div>
+                  </details>
+                </td>
+                <td>{{ getSuppliers(order) }}</td>
+                <td><strong>{{ currencySymbol }}{{ order.total_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</strong></td>
+                <td>{{ order.lead_time_days }} {{ t('orders.submitted.days') }}</td>
+                <td>{{ formatDate(order.expected_delivery) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -124,6 +171,21 @@ export default {
       }
     }
 
+    // Submitted restocking orders (independent of filters; failure is non-fatal)
+    const submittedOrders = ref([])
+    const loadSubmittedOrders = async () => {
+      try {
+        submittedOrders.value = await api.getRestockOrders()
+      } catch (err) {
+        console.error('Failed to load submitted orders:', err)
+        submittedOrders.value = []
+      }
+    }
+
+    const getSuppliers = (order) => {
+      return [...new Set(order.items.map(i => i.supplier_name))].join(', ')
+    }
+
     // Watch for filter changes and reload data
     watch([selectedPeriod, selectedLocation, selectedCategory, selectedStatus], () => {
       loadOrders()
@@ -153,13 +215,18 @@ export default {
       })
     }
 
-    onMounted(loadOrders)
+    onMounted(() => {
+      loadOrders()
+      loadSubmittedOrders()
+    })
 
     return {
       t,
       loading,
       error,
       orders,
+      submittedOrders,
+      getSuppliers,
       getOrdersByStatus,
       getOrderStatusClass,
       formatDate,
@@ -201,6 +268,16 @@ export default {
 
 .col-value {
   width: 120px;
+}
+
+.submitted-card {
+  margin-top: 1.5rem;
+}
+
+.submitted-empty {
+  padding: 2rem;
+  text-align: center;
+  color: #64748b;
 }
 
 /* Items details styling */
